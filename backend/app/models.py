@@ -2,12 +2,10 @@ import uuid
 from datetime import datetime, timezone
 from typing import Annotated, Any
 
-from pydantic import BeforeValidator, EmailStr
+from pydantic import BeforeValidator, EmailStr, model_validator
 from pydantic_extra_types.color import Color
 from sqlalchemy import DateTime
 from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
-
-# TODO: Add constraints for time entry (end_time cannot be before start_time)
 
 
 def get_datetime_utc() -> datetime:
@@ -122,7 +120,6 @@ class ProjectPublic(ProjectBase):
     id: uuid.UUID
     user_id: uuid.UUID
     created_at: datetime | None = None
-    updated_at: datetime | None = None
 
 
 class ProjectsPublic(SQLModel):
@@ -176,6 +173,13 @@ class TimeEntryBase(SQLModel):
     start_time: datetime = Field(default_factory=get_datetime_utc)
     end_time: datetime | None = None
 
+    @model_validator(mode="after")
+    def check_end_after_start(self) -> "TimeEntryBase":
+        if self.end_time is not None and self.end_time <= self.start_time:
+            raise ValueError("end_time must be after start_time")
+
+        return self
+
 
 class TimeEntryCreate(TimeEntryBase):
     project_id: uuid.UUID | None = None
@@ -188,6 +192,13 @@ class TimeEntryUpdate(SQLModel):
     end_time: datetime | None = None
     project_id: uuid.UUID | None = None
     tag_ids: list[uuid.UUID] | None = None
+
+    @model_validator(mode="after")
+    def check_end_after_start(self) -> "TimeEntryUpdate":
+        if self.start_time and self.end_time and self.end_time <= self.start_time:
+            raise ValueError("end_time must be after start_time")
+
+        return self
 
 
 class TimeEntry(TimeEntryBase, table=True):
@@ -215,3 +226,14 @@ class TimeEntryPublic(TimeEntryBase):
 class TimeEntriesPublic(SQLModel):
     data: list[TimeEntryPublic]
     count: int
+
+
+# JSON payload containing access token
+class Token(SQLModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+# JWT token content
+class TokenPayload(SQLModel):
+    sub: str | None = None
