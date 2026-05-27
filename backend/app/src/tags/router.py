@@ -1,10 +1,11 @@
 from typing import Any
 from uuid import UUID
+
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy.exc import IntegrityError
-from app.models import TagCreate, TagPublic, TagsPublic, TagUpdate
-from app.src.deps import CurrentUser, SessionDep
 
+from app.deps import CurrentUser, SessionDep
+from app.models import TagCreate, TagPublic, TagsPublic, TagUpdate
 from app.src.tags import services
 
 router = APIRouter(prefix="/tags", tags=["tags"])

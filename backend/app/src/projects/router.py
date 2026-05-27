@@ -4,13 +4,13 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 
+from app.deps import CurrentUser, SessionDep
 from app.models import (
     ProjectCreate,
     ProjectPublic,
     ProjectsPublic,
     ProjectUpdate,
 )
-from app.src.deps import CurrentUser, SessionDep
 from app.src.projects import services
 
 router = APIRouter(prefix="/projects", tags=["projects"])

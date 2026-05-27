@@ -3,13 +3,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
 
+from app.deps import CurrentUser, SessionDep
 from app.models import (
     TimeEntriesPublic,
     TimeEntryCreate,
     TimeEntryPublic,
     TimeEntryUpdate,
 )
-from app.src.deps import CurrentUser, SessionDep
 from app.src.entries import services
 
 router = APIRouter(

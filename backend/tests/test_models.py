@@ -1,17 +1,8 @@
-from datetime import datetime, timedelta, timezone
-
 import pytest
 from pydantic import ValidationError
 
 from app.models import TimeEntryCreate, TimeEntryUpdate
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-def _dt(offset_mins: int = 0) -> datetime:
-    return _now() + timedelta(minutes=offset_mins)
+from tests.utils import _dt, _now
 
 
 def test_create_with_no_end_time_is_valid():
