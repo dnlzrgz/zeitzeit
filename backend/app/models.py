@@ -7,6 +7,8 @@ from pydantic_extra_types.color import Color
 from sqlalchemy import DateTime
 from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
 
+# TODO: add indexes
+
 
 def get_datetime_utc() -> datetime:
     return datetime.now(timezone.utc)
