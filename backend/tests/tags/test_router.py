@@ -94,7 +94,7 @@ def test_update_tag_creates_tag_successfully(
     tag = _create_tag(session, regular_user.id, "x")
     resp = client.patch(
         app.url_path_for("update_tag", tag_id=tag.id),
-        json={"name": f"{faker.unique.word()}"},
+        json={"name": faker.unique.word()},
         headers=regular_user_token_headers,
     )
     assert resp.status_code == status.HTTP_200_OK
