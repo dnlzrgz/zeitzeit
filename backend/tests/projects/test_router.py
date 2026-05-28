@@ -17,12 +17,18 @@ def test_create_project_successfully(
     faker,
     regular_user_token_headers,
 ) -> None:
+    name = faker.unique.word()
+    color = faker.unique.hex_color().upper()
     resp = client.post(
         app.url_path_for("create_project"),
-        json={"name": faker.unique.word(), "color": faker.hex_color()},
+        json={"name": name, "color": color},
         headers=regular_user_token_headers,
     )
     assert resp.status_code == status.HTTP_201_CREATED
+
+    body = resp.json()
+    assert body["name"] == name
+    assert body["color"] == color
 
 
 def test_create_project_with_duplicate_name_returns_409(
@@ -59,6 +65,7 @@ def test_create_project_same_name_allowed_for_different_users(
         headers=admin_token_headers,
     )
     assert resp.status_code == status.HTTP_201_CREATED
+    assert resp.json()["name"] == "shared"
 
 
 def test_create_project_normalizes_color_to_hex(
@@ -135,12 +142,14 @@ def test_update_project_name_successfully(
     regular_user_token_headers,
 ) -> None:
     project = _create_project(session, regular_user.id)
+    new_name = faker.unique.word()
     resp = client.patch(
         app.url_path_for("update_project", project_id=project.id),
-        json={"name": faker.unique.word()},
+        json={"name": new_name},
         headers=regular_user_token_headers,
     )
     assert resp.status_code == status.HTTP_200_OK
+    assert resp.json()["name"] == new_name
 
 
 def test_update_project_color_successfully(
@@ -151,12 +160,14 @@ def test_update_project_color_successfully(
     regular_user_token_headers,
 ) -> None:
     project = _create_project(session, regular_user.id)
+    new_color = faker.unique.hex_color().upper()
     resp = client.patch(
         app.url_path_for("update_project", project_id=project.id),
-        json={"color": faker.unique.hex_color()},
+        json={"color": new_color},
         headers=regular_user_token_headers,
     )
     assert resp.status_code == status.HTTP_200_OK
+    assert resp.json()["color"] == new_color
 
 
 def test_update_project_with_same_name_is_successful(
@@ -172,6 +183,7 @@ def test_update_project_with_same_name_is_successful(
         headers=regular_user_token_headers,
     )
     assert resp.status_code == status.HTTP_200_OK
+    assert resp.json()["name"] == "unique"
 
 
 def test_update_project_with_duplicate_name_returns_409(

@@ -67,7 +67,7 @@ def test_create_time_entry_with_end_before_start_returns_422(
         },
         headers=regular_user_token_headers,
     )
-    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 def test_create_time_entry_with_end_equal_to_start_returns_422(
@@ -83,7 +83,7 @@ def test_create_time_entry_with_end_equal_to_start_returns_422(
         },
         headers=regular_user_token_headers,
     )
-    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 def test_create_time_entry_with_project(
@@ -242,7 +242,7 @@ def test_update_time_entry_with_end_before_start_returns_422(
         },
         headers=regular_user_token_headers,
     )
-    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 def test_update_time_entry_assign_project(

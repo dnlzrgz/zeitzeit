@@ -1,7 +1,7 @@
 [project]
 name = "backend"
 version = "0.1.0"
-description = "Add your description here"
+description = "self-hosted time tracker backend."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
@@ -23,6 +23,18 @@ dev = [
   "faker>=40.19.1",
   "prek>=0.4.1",
   "pytest>=9.0.3",
+  "pytest-cov>=7.1.0",
   "pytest-randomly>=4.1.0",
+  "pytest-xdist[psutil]>=3.8.0",
   "ruff>=0.15.14",
 ]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/alembic/*", "app/initial_data.py", "*/__init__.py"]
+
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 90

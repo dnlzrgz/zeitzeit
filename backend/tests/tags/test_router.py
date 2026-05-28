@@ -14,12 +14,14 @@ def test_create_tag_creates_tag_successfully(
     faker,
     regular_user_token_headers,
 ) -> None:
+    name = faker.unique.word()
     resp = client.post(
         app.url_path_for("create_tag"),
-        json={"name": faker.unique.word()},
+        json={"name": name},
         headers=regular_user_token_headers,
     )
     assert resp.status_code == status.HTTP_201_CREATED
+    assert resp.json()["name"] == name
 
 
 def test_create_tag_with_duplicate_name_returns_409(
@@ -51,6 +53,7 @@ def test_create_tag_same_name_allowed_for_different_users(
         headers=admin_token_headers,
     )
     assert resp.status_code == status.HTTP_201_CREATED
+    assert resp.json()["name"] == "shared"
 
 
 def test_list_tags_requires_authentication(client) -> None:
@@ -105,12 +108,14 @@ def test_update_tag_updates_tag_successfully(
     regular_user_token_headers,
 ) -> None:
     tag = _create_tag(session, regular_user.id)
+    new_name = faker.unique.word()
     resp = client.patch(
         app.url_path_for("update_tag", tag_id=tag.id),
-        json={"name": faker.unique.word()},
+        json={"name": new_name},
         headers=regular_user_token_headers,
     )
     assert resp.status_code == status.HTTP_200_OK
+    assert resp.json()["name"] == new_name
 
 
 def test_update_tag_with_duplicate_name_returns_409(
@@ -142,6 +147,7 @@ def test_update_tag_with_same_name_is_successful(
         headers=regular_user_token_headers,
     )
     assert resp.status_code == status.HTTP_200_OK
+    assert resp.json()["name"] == "unique"
 
 
 def test_update_tag_from_another_user_returns_404(
@@ -154,7 +160,7 @@ def test_update_tag_from_another_user_returns_404(
     admin_tag = _create_tag(session, admin.id)
     resp = client.patch(
         app.url_path_for("update_tag", tag_id=admin_tag.id),
-        json={"name": f"{faker.unique.word()}"},
+        json={"name": faker.unique.word()},
         headers=regular_user_token_headers,
     )
     assert resp.status_code == status.HTTP_404_NOT_FOUND
