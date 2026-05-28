@@ -5,7 +5,7 @@ from tests.utils import _create_tag
 
 
 def test_create_tag_requires_authentication(client) -> None:
-    resp = client.post("/api/v1/tags/", json={"name": "x"})
+    resp = client.post(app.url_path_for("create_tag"), json={"name": "x"})
     assert resp.status_code == status.HTTP_401_UNAUTHORIZED
 
 
@@ -15,8 +15,8 @@ def test_create_tag_creates_tag_successfully(
     regular_user_token_headers,
 ) -> None:
     resp = client.post(
-        "/api/v1/tags/",
-        json={"name": f"{faker.unique.word()}"},
+        app.url_path_for("create_tag"),
+        json={"name": faker.unique.word()},
         headers=regular_user_token_headers,
     )
     assert resp.status_code == status.HTTP_201_CREATED
@@ -30,15 +30,31 @@ def test_create_tag_with_duplicate_name_returns_409(
 ) -> None:
     _create_tag(session, regular_user.id, "duplicated")
     resp = client.post(
-        "/api/v1/tags/",
+        app.url_path_for("create_tag"),
         json={"name": "duplicated"},
         headers=regular_user_token_headers,
     )
     assert resp.status_code == status.HTTP_409_CONFLICT
 
 
+def test_create_tag_same_name_allowed_for_different_users(
+    session,
+    client,
+    regular_user,
+    admin_token_headers,
+) -> None:
+    _create_tag(session, regular_user.id, name="shared")
+
+    resp = client.post(
+        app.url_path_for("create_tag"),
+        json={"name": "shared"},
+        headers=admin_token_headers,
+    )
+    assert resp.status_code == status.HTTP_201_CREATED
+
+
 def test_list_tags_requires_authentication(client) -> None:
-    resp = client.get("/api/v1/tags/")
+    resp = client.get(app.url_path_for("list_tags"))
     assert resp.status_code == status.HTTP_401_UNAUTHORIZED
 
 
@@ -46,7 +62,7 @@ def test_list_tags_returns_empty_list_when_no_tags(
     client,
     regular_user_token_headers,
 ) -> None:
-    resp = client.get("/api/v1/tags/", headers=regular_user_token_headers)
+    resp = client.get(app.url_path_for("list_tags"), headers=regular_user_token_headers)
     assert resp.status_code == status.HTTP_200_OK
 
     body = resp.json()
@@ -57,18 +73,15 @@ def test_list_tags_returns_empty_list_when_no_tags(
 def test_list_tags_returns_only_own_tags(
     session,
     client,
-    faker,
     regular_user,
     regular_user_token_headers,
     admin,
 ) -> None:
     for _ in range(5):
-        _create_tag(session, regular_user.id, faker.unique.word())
+        _create_tag(session, regular_user.id)
+        _create_tag(session, admin.id)
 
-    for _ in range(5):
-        _create_tag(session, admin.id, faker.unique.word())
-
-    resp = client.get("/api/v1/tags/", headers=regular_user_token_headers)
+    resp = client.get(app.url_path_for("list_tags"), headers=regular_user_token_headers)
     assert resp.status_code == status.HTTP_200_OK
 
     body = resp.json()
@@ -76,7 +89,7 @@ def test_list_tags_returns_only_own_tags(
 
 
 def test_update_tag_requires_authentication(session, client, regular_user) -> None:
-    tag = _create_tag(session, regular_user.id, "x")
+    tag = _create_tag(session, regular_user.id)
     resp = client.patch(
         app.url_path_for("update_tag", tag_id=tag.id),
         json={"name": "y"},
@@ -84,14 +97,14 @@ def test_update_tag_requires_authentication(session, client, regular_user) -> No
     assert resp.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-def test_update_tag_creates_tag_successfully(
+def test_update_tag_updates_tag_successfully(
     session,
     client,
     faker,
     regular_user,
     regular_user_token_headers,
 ) -> None:
-    tag = _create_tag(session, regular_user.id, "x")
+    tag = _create_tag(session, regular_user.id)
     resp = client.patch(
         app.url_path_for("update_tag", tag_id=tag.id),
         json={"name": faker.unique.word()},
@@ -138,7 +151,7 @@ def test_update_tag_from_another_user_returns_404(
     admin,
     regular_user_token_headers,
 ) -> None:
-    admin_tag = _create_tag(session, admin.id, "private")
+    admin_tag = _create_tag(session, admin.id)
     resp = client.patch(
         app.url_path_for("update_tag", tag_id=admin_tag.id),
         json={"name": f"{faker.unique.word()}"},
@@ -148,7 +161,7 @@ def test_update_tag_from_another_user_returns_404(
 
 
 def test_delete_tag_requires_authentication(session, client, regular_user) -> None:
-    tag = _create_tag(session, regular_user.id, "x")
+    tag = _create_tag(session, regular_user.id)
     resp = client.delete(
         app.url_path_for("delete_tag", tag_id=tag.id),
     )
@@ -161,7 +174,7 @@ def test_delete_tag_successfully(
     regular_user,
     regular_user_token_headers,
 ) -> None:
-    tag = _create_tag(session, regular_user.id, "nothing important")
+    tag = _create_tag(session, regular_user.id)
     resp = client.delete(
         app.url_path_for("delete_tag", tag_id=tag.id),
         headers=regular_user_token_headers,
@@ -187,7 +200,7 @@ def test_delete_tag_from_another_user_returns_404(
     admin,
     regular_user_token_headers,
 ) -> None:
-    admin_tag = _create_tag(session, admin.id, "private")
+    admin_tag = _create_tag(session, admin.id)
     resp = client.delete(
         app.url_path_for("delete_tag", tag_id=admin_tag.id),
         headers=regular_user_token_headers,

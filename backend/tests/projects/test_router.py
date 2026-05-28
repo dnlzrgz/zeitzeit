@@ -98,23 +98,20 @@ def test_list_projects_returns_empty_list_when_no_projects(
 def test_list_projects_returns_only_own_projects(
     session,
     client,
-    faker,
     regular_user,
     regular_user_token_headers,
     admin,
 ) -> None:
-    for _ in range(3):
-        _create_project(session, regular_user.id, name=faker.unique.word())
-
     for _ in range(5):
-        _create_project(session, admin.id, name=faker.unique.word())
+        _create_project(session, regular_user.id)
+        _create_project(session, admin.id)
 
     resp = client.get(
         app.url_path_for("list_projects"),
         headers=regular_user_token_headers,
     )
     assert resp.status_code == status.HTTP_200_OK
-    assert resp.json()["count"] == 3
+    assert resp.json()["count"] == 5
 
 
 def test_update_project_requires_authentication(
@@ -122,7 +119,7 @@ def test_update_project_requires_authentication(
     client,
     regular_user,
 ) -> None:
-    project = _create_project(session, regular_user.id, "x")
+    project = _create_project(session, regular_user.id)
     resp = client.patch(
         app.url_path_for("update_project", project_id=project.id),
         json={"name": "y"},
@@ -137,7 +134,7 @@ def test_update_project_name_successfully(
     regular_user,
     regular_user_token_headers,
 ) -> None:
-    project = _create_project(session, regular_user.id, name="old name")
+    project = _create_project(session, regular_user.id)
     resp = client.patch(
         app.url_path_for("update_project", project_id=project.id),
         json={"name": faker.unique.word()},
@@ -153,8 +150,7 @@ def test_update_project_color_successfully(
     regular_user,
     regular_user_token_headers,
 ) -> None:
-    project = _create_project(session, regular_user.id, "x")
-
+    project = _create_project(session, regular_user.id)
     resp = client.patch(
         app.url_path_for("update_project", project_id=project.id),
         json={"color": faker.unique.hex_color()},
@@ -185,8 +181,7 @@ def test_update_project_with_duplicate_name_returns_409(
     regular_user_token_headers,
 ) -> None:
     _create_project(session, regular_user.id, name="duplicated")
-    project = _create_project(session, regular_user.id, name="other")
-
+    project = _create_project(session, regular_user.id)
     resp = client.patch(
         app.url_path_for("update_project", project_id=project.id),
         json={"name": "duplicated"},
@@ -202,8 +197,7 @@ def test_update_project_from_another_user_returns_404(
     admin,
     regular_user_token_headers,
 ) -> None:
-    admin_project = _create_project(session, admin.id, name="private")
-
+    admin_project = _create_project(session, admin.id)
     resp = client.patch(
         app.url_path_for("update_project", project_id=admin_project.id),
         json={"name": faker.unique.word()},
@@ -230,7 +224,7 @@ def test_delete_project_requires_authentication(
     client,
     regular_user,
 ) -> None:
-    project = _create_project(session, regular_user.id, "x")
+    project = _create_project(session, regular_user.id)
     resp = client.delete(
         app.url_path_for("delete_project", project_id=project.id),
     )
@@ -243,7 +237,7 @@ def test_delete_project_successfully(
     regular_user,
     regular_user_token_headers,
 ) -> None:
-    project = _create_project(session, regular_user.id, name="nothing important")
+    project = _create_project(session, regular_user.id)
     resp = client.delete(
         app.url_path_for("delete_project", project_id=project.id),
         headers=regular_user_token_headers,
@@ -269,7 +263,7 @@ def test_delete_project_from_another_user_returns_404(
     admin,
     regular_user_token_headers,
 ) -> None:
-    admin_project = _create_project(session, admin.id, name="private")
+    admin_project = _create_project(session, admin.id)
     resp = client.delete(
         app.url_path_for("delete_project", project_id=admin_project.id),
         headers=regular_user_token_headers,
