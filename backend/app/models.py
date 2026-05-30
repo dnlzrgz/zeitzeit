@@ -5,7 +5,14 @@ from typing import Annotated, Any
 from pydantic import BeforeValidator, EmailStr, model_validator
 from pydantic_extra_types.color import Color
 from sqlalchemy import DateTime
-from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
+from sqlmodel import (
+    CheckConstraint,
+    Field,
+    Index,
+    Relationship,
+    SQLModel,
+    UniqueConstraint,
+)
 
 # TODO: add indexes
 
@@ -100,7 +107,11 @@ class ProjectUpdate(SQLModel):
 
 class Project(ProjectBase, table=True):
     __table_args__ = (
-        UniqueConstraint("user_id", "name", name="unique_project_per_user"),
+        UniqueConstraint(
+            "user_id",
+            "name",
+            name="uq_project_per_user",
+        ),
     )
 
     id: uuid.UUID = Field(
@@ -147,7 +158,13 @@ class TagUpdate(SQLModel):
 
 
 class Tag(TagBase, table=True):
-    __table_args__ = (UniqueConstraint("user_id", "name", name="unique_tag_per_user"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "name",
+            name="uq_tag_per_user",
+        ),
+    )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid7, primary_key=True)
     user_id: uuid.UUID = Field(
@@ -204,17 +221,38 @@ class TimeEntryUpdate(SQLModel):
 
 
 class TimeEntry(TimeEntryBase, table=True):
+    __table_args__ = (
+        CheckConstraint(
+            "end_time IS NULL OR end_time > start_time",
+            name="ck_timeentry_end_after_start",
+        ),
+        Index(
+            "ix_timeentry_user_start_time",
+            "user_id",
+            "start_time",
+        ),
+        Index(
+            "ix_timeentry_project_id",
+            "project_id",
+        ),
+    )
+
     id: uuid.UUID = Field(default_factory=uuid.uuid7, primary_key=True)
     user_id: uuid.UUID = Field(
-        foreign_key="user.id", nullable=False, ondelete="CASCADE"
+        foreign_key="user.id",
+        nullable=False,
+        ondelete="CASCADE",
     )
     user: User | None = Relationship(back_populates="time_entries")
     project_id: uuid.UUID | None = Field(
-        default=None, foreign_key="project.id", ondelete="SET NULL"
+        default=None,
+        foreign_key="project.id",
+        ondelete="SET NULL",
     )
     project: Project | None = Relationship(back_populates="time_entries")
     tags: list[Tag] = Relationship(
-        back_populates="time_entries", link_model=TimeEntryTagLink
+        back_populates="time_entries",
+        link_model=TimeEntryTagLink,
     )
 
 
