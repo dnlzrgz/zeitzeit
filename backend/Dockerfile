@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=/home/$USERNAME/.cache/uv,uid=1000 \
   --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
   uv sync --frozen --no-install-project
 
-ADD --chown=$USERNAME:$USERNAME . /app
+COPY --chown=$USERNAME:$USERNAME . /app
 
 RUN --mount=type=cache,target=/home/$USERNAME/.cache/uv,uid=1000 \
   uv sync --frozen
