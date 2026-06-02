@@ -227,9 +227,9 @@ class TimeEntry(TimeEntryBase, table=True):
             name="ck_timeentry_end_after_start",
         ),
         Index(
-            "ix_timeentry_user_start_time",
+            "ix_timeentry_user_id",
             "user_id",
-            "start_time",
+            "id",
         ),
         Index(
             "ix_timeentry_project_id",
@@ -263,9 +263,10 @@ class TimeEntryPublic(TimeEntryBase):
     tags: list[TagPublic] = []
 
 
-class TimeEntriesPublic(SQLModel):
+class TimeEntriesPage(SQLModel):
     data: list[TimeEntryPublic]
-    count: int
+    next_cursor: uuid.UUID | None = None
+    has_more: bool
 
 
 # JSON payload containing access token

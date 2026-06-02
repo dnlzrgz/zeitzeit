@@ -1,5 +1,7 @@
 # Python
 __pycache__/
+.pytest_cache/
+.ruff_cache/
 *.py[cod]
 *.pyo
 .venv/
@@ -17,10 +19,13 @@ htmlcov/
 .gitignore
 .env*
 !.env.example
+Makefile
+prek.toml
+.python-version
 
 # Docker
 Dockerfile*
-docker-compose*.yml
+docker-compose*.yaml
 
 # Docs
 README.md

@@ -151,8 +151,8 @@ def test_list_time_entries_returns_empty_list_when_no_entries(
     assert resp.status_code == status.HTTP_200_OK
 
     body = resp.json()
-    assert body["data"] == []
-    assert body["count"] == 0
+    assert body["has_more"] is False
+    assert body["next_cursor"] is None
 
 
 def test_list_time_entries_returns_only_own_entries(
@@ -171,7 +171,70 @@ def test_list_time_entries_returns_only_own_entries(
         headers=regular_user_token_headers,
     )
     assert resp.status_code == status.HTTP_200_OK
-    assert resp.json()["count"] == 5
+
+    body = resp.json()
+
+    assert len(body["data"]) == 5
+    assert body["has_more"] is False
+    assert body["next_cursor"] is None
+
+
+def test_list_time_entries_first_page(
+    session,
+    client,
+    regular_user,
+    regular_user_token_headers,
+) -> None:
+    for _ in range(5):
+        _create_time_entry(session, regular_user.id)
+
+    resp = client.get(
+        app.url_path_for("list_time_entries"),
+        params={"limit": 2},
+        headers=regular_user_token_headers,
+    )
+    assert resp.status_code == status.HTTP_200_OK
+
+    body = resp.json()
+    assert len(body["data"]) == 2
+    assert body["has_more"] is True
+    assert body["next_cursor"] is not None
+
+
+def test_list_time_entries_pages_do_not_overlap(
+    session,
+    client,
+    regular_user,
+    regular_user_token_headers,
+) -> None:
+    for _ in range(10):
+        _create_time_entry(session, regular_user.id)
+
+    seen = set()
+    cursor = None
+    while True:
+        params = {"limit": 2}
+        if cursor:
+            params["cursor"] = cursor
+
+        resp = client.get(
+            app.url_path_for("list_time_entries"),
+            params=params,
+            headers=regular_user_token_headers,
+        )
+        assert resp.status_code == status.HTTP_200_OK
+
+        body = resp.json()
+        page_ids = {item["id"] for item in body["data"]}
+
+        assert seen.isdisjoint(page_ids)
+        seen.update(page_ids)
+
+        cursor = body["next_cursor"]
+        if cursor is None:
+            break
+
+    assert len(seen) == 10
 
 
 def test_update_time_entry_requires_authentication(

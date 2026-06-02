@@ -1,11 +1,11 @@
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 
 from app.deps import CurrentUser, SessionDep
 from app.models import (
-    TimeEntriesPublic,
+    TimeEntriesPage,
     TimeEntryCreate,
     TimeEntryPublic,
     TimeEntryUpdate,
@@ -18,10 +18,25 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=TimeEntriesPublic)
-def list_time_entries(session: SessionDep, current_user: CurrentUser) -> Any:
-    time_entries, count = services.list_all(session=session, user_id=current_user.id)
-    return {"data": time_entries, "count": count}
+@router.get("/", response_model=TimeEntriesPage)
+def list_time_entries(
+    session: SessionDep,
+    current_user: CurrentUser,
+    limit: int = Query(default=50, ge=1, le=100),
+    cursor: UUID | None = None,
+) -> Any:
+    items, next_cursor, has_more = services.list_paginated(
+        session=session,
+        user_id=current_user.id,
+        limit=limit,
+        cursor=cursor,
+    )
+
+    return {
+        "data": items,
+        "next_cursor": next_cursor,
+        "has_more": has_more,
+    }
 
 
 @router.post("/", response_model=TimeEntryPublic, status_code=201)

@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlmodel import Session, func, select
+from sqlmodel import Session, desc, select
 
 from app.models import Tag, TimeEntry, TimeEntryCreate, TimeEntryUpdate
 
@@ -13,12 +13,35 @@ def get(*, session: Session, time_entry_id: UUID, user_id: UUID) -> TimeEntry | 
     ).first()
 
 
-def list_all(*, session: Session, user_id: UUID) -> tuple[list[TimeEntry], int]:
-    time_entries = session.exec(
-        select(TimeEntry).where(TimeEntry.user_id == user_id)
-    ).all()
-    total = session.exec(select(func.count()).where(TimeEntry.user_id == user_id)).one()
-    return list(time_entries), int(total)
+def list_paginated(
+    *,
+    session: Session,
+    user_id: UUID,
+    limit: int,
+    cursor: UUID | None,
+) -> tuple[list[TimeEntry], UUID | None, bool]:
+    """
+    Cursor-based pagination based on UUIDv7 IDs.
+    """
+    statement = (
+        select(TimeEntry)
+        .where(TimeEntry.user_id == user_id)
+        .order_by(desc(TimeEntry.id))
+        .limit(limit + 1)
+    )
+
+    if cursor:
+        statement = statement.where(TimeEntry.id < cursor)
+
+    results = list(session.exec(statement).all())
+    has_more = len(results) > limit
+
+    if has_more:
+        results = results[:limit]
+
+    next_cursor = results[-1].id if has_more and results else None
+
+    return results, next_cursor, has_more
 
 
 def create(
