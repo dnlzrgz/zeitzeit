@@ -12,7 +12,9 @@ from app.models import (
     TimeEntry,
     TimeEntryTagLink,
     User,
+    UserCreate,
 )
+from app.src.users.services import create as create_user
 
 faker = Faker()
 
@@ -42,15 +44,19 @@ def seed(size: str) -> None:
     sizes = SEED_SIZES[size]
     with Session(engine) as session:
         users: list[User] = [
-            User(
-                email=f"user{i}@example.com",
-                hashed_password="password123",
-                full_name=faker.name(),
+            create_user(
+                session=session,
+                user_create=UserCreate(
+                    email=f"user{i}@example.com",
+                    password="password123",
+                    full_name=faker.name(),
+                ),
             )
             for i in range(sizes["users"])
         ]
         session.add_all(users)
         session.commit()
+
         for user in users:
             projects = [
                 Project(
