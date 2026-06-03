@@ -1,3 +1,4 @@
+import sentry_sdk
 from fastapi import APIRouter, FastAPI
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
@@ -13,6 +14,16 @@ def custom_generate_unique_id(route: APIRoute) -> str:
     return f"{route.tags[0]}-{route.name}"
 
 
+if settings.SENTRY_DNS:
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DNS,
+        environment=settings.ENVIRONMENT,
+        traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
+        profile_session_sample_rate=settings.SENTRY_PROFILES_SAMPLE_RATE,
+        send_default_pii=settings.SENTRY_SEND_DEFAULT_PII,
+    )
+
+
 api_router = APIRouter()
 api_router.include_router(auth_router)
 api_router.include_router(tags_router)
@@ -25,6 +36,7 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     generate_unique_id_function=custom_generate_unique_id,
 )
+
 
 if settings.all_cors_origins:
     app.add_middleware(

@@ -103,6 +103,11 @@ class Settings(BaseSettings):
             )
         )
 
+    SENTRY_DNS: str | None = None
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.1
+    SENTRY_PROFILES_SAMPLE_RATE: float = 0.1
+    SENTRY_SEND_DEFAULT_PII: bool = False
+
     SMTP_TLS: bool = True
     SMTP_SSL: bool = False
     SMTP_PORT: int = 587
