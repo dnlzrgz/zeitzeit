@@ -11,6 +11,17 @@ from app.src.tags import services
 router = APIRouter(prefix="/tags", tags=["tags"])
 
 
+@router.get("/{tag_id}", response_model=TagPublic)
+def get_tag(session: SessionDep, current_user: CurrentUser, tag_id: UUID) -> Any:
+    tag = services.get(session=session, user_id=current_user.id, tag_id=tag_id)
+    if not tag:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Tag not found"
+        )
+
+    return tag
+
+
 @router.get("/", response_model=TagsPublic)
 def list_tags(session: SessionDep, current_user: CurrentUser) -> Any:
     tags, count = services.list_all(session=session, user_id=current_user.id)

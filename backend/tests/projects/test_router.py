@@ -4,6 +4,58 @@ from app.main import app
 from tests.utils import _create_project
 
 
+def test_get_project_by_id_requires_authentication(
+    session, client, regular_user
+) -> None:
+    project = _create_project(session, regular_user.id)
+    resp = client.get(app.url_path_for("get_project", project_id=project.id))
+    assert resp.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_get_project_by_id_returns_tag_successfully(
+    session,
+    client,
+    regular_user,
+    regular_user_token_headers,
+) -> None:
+    project = _create_project(session, regular_user.id)
+    resp = client.get(
+        app.url_path_for("get_project", project_id=project.id),
+        headers=regular_user_token_headers,
+    )
+    assert resp.status_code == status.HTTP_200_OK
+
+    body = resp.json()
+    assert body["id"] == str(project.id)
+    assert body["name"] == project.name
+
+
+def test_get_project_by_id_not_found_returns_404(
+    client,
+    faker,
+    regular_user_token_headers,
+) -> None:
+    resp = client.get(
+        app.url_path_for("get_project", project_id=faker.uuid4()),
+        headers=regular_user_token_headers,
+    )
+    assert resp.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_get_project_by_id_from_another_user_returns_404(
+    session,
+    client,
+    admin,
+    regular_user_token_headers,
+) -> None:
+    admin_project = _create_project(session, admin.id)
+    resp = client.get(
+        app.url_path_for("get_project", project_id=admin_project.id),
+        headers=regular_user_token_headers,
+    )
+    assert resp.status_code == status.HTTP_404_NOT_FOUND
+
+
 def test_create_project_requires_authentication(client) -> None:
     resp = client.post(
         app.url_path_for("create_project"),

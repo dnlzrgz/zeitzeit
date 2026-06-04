@@ -16,6 +16,23 @@ from app.src.projects import services
 router = APIRouter(prefix="/projects", tags=["projects"])
 
 
+@router.get("/{project_id}", response_model=ProjectPublic)
+def get_project(
+    session: SessionDep,
+    current_user: CurrentUser,
+    project_id: UUID,
+) -> Any:
+    project = services.get(
+        session=session, user_id=current_user.id, project_id=project_id
+    )
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        )
+
+    return project
+
+
 @router.get("/", response_model=ProjectsPublic)
 def list_projects(session: SessionDep, current_user: CurrentUser) -> Any:
     projects, count = services.list_all(session=session, user_id=current_user.id)

@@ -4,6 +4,56 @@ from app.main import app
 from tests.utils import _create_tag
 
 
+def test_get_tag_by_id_requires_authentication(session, client, regular_user) -> None:
+    tag = _create_tag(session, regular_user.id)
+    resp = client.get(app.url_path_for("get_tag", tag_id=tag.id))
+    assert resp.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_get_tag_by_id_returns_tag_successfully(
+    session,
+    client,
+    regular_user,
+    regular_user_token_headers,
+) -> None:
+    tag = _create_tag(session, regular_user.id)
+    resp = client.get(
+        app.url_path_for("get_tag", tag_id=tag.id),
+        headers=regular_user_token_headers,
+    )
+    assert resp.status_code == status.HTTP_200_OK
+
+    body = resp.json()
+    assert body["id"] == str(tag.id)
+    assert body["name"] == tag.name
+
+
+def test_get_tag_by_id_not_found_returns_404(
+    client,
+    faker,
+    regular_user_token_headers,
+) -> None:
+    resp = client.get(
+        app.url_path_for("get_tag", tag_id=faker.uuid4()),
+        headers=regular_user_token_headers,
+    )
+    assert resp.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_get_tag_by_id_from_another_user_returns_404(
+    session,
+    client,
+    admin,
+    regular_user_token_headers,
+) -> None:
+    admin_tag = _create_tag(session, admin.id)
+    resp = client.get(
+        app.url_path_for("get_tag", tag_id=admin_tag.id),
+        headers=regular_user_token_headers,
+    )
+    assert resp.status_code == status.HTTP_404_NOT_FOUND
+
+
 def test_create_tag_requires_authentication(client) -> None:
     resp = client.post(app.url_path_for("create_tag"), json={"name": "x"})
     assert resp.status_code == status.HTTP_401_UNAUTHORIZED
