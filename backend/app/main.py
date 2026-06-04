@@ -1,5 +1,6 @@
 import sentry_sdk
 from fastapi import APIRouter, FastAPI
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 
@@ -47,6 +48,13 @@ if settings.all_cors_origins:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+    )
+
+if settings.GZIP_ENABLED:
+    app.add_middleware(
+        GZipMiddleware,
+        minimum_size=settings.GZIP_MINIMUM_SIZE,
+        compresslevel=settings.GZIP_COMPRESS_LEVEL,
     )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)

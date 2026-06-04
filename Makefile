@@ -8,13 +8,13 @@ dev:
 	docker compose --env-file .env up -d --build --remove-orphans
 
 down:
-	docker compose --env-file .env down -v
+	docker compose --env-file .env down
 
 migrate:
 	docker compose exec backend alembic upgrade head
 
 seed:
-	docker compose exec backend python -m app.scripts.seed --size medium
+	docker compose exec backend python -m app.scripts.seed
 
 shell:
 	docker compose exec backend python

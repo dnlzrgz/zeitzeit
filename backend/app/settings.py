@@ -108,6 +108,10 @@ class Settings(BaseSettings):
     SENTRY_PROFILES_SAMPLE_RATE: float = 0.1
     SENTRY_SEND_DEFAULT_PII: bool = False
 
+    GZIP_ENABLED: bool = True
+    GZIP_MINIMUM_SIZE: int = 1000
+    GZIP_COMPRESS_LEVEL: int = 5
+
     SMTP_TLS: bool = True
     SMTP_SSL: bool = False
     SMTP_PORT: int = 587
