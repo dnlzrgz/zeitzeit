@@ -18,6 +18,28 @@ router = APIRouter(
 )
 
 
+@router.get("/running", response_model=TimeEntryPublic | None)
+def get_running_entry(session: SessionDep, current_user: CurrentUser) -> Any:
+    return services.get_running(session=session, user_id=current_user.id)
+
+
+@router.get("/{time_entry_id}", response_model=TimeEntryPublic)
+def get_time_entry(
+    session: SessionDep,
+    current_user: CurrentUser,
+    time_entry_id: UUID,
+):
+    time_entry = services.get(
+        session=session, user_id=current_user.id, time_entry_id=time_entry_id
+    )
+    if not time_entry:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Time entry not found"
+        )
+
+    return time_entry
+
+
 @router.get("/", response_model=TimeEntriesPage)
 def list_time_entries(
     session: SessionDep,
@@ -72,6 +94,26 @@ def update_time_entry(
         db_time_entry=time_entry,
         time_entry_in=time_entry_in,
     )
+
+
+@router.post("/{time_entry_id}/stop", response_model=TimeEntryPublic)
+def stop_time_entry(
+    session: SessionDep, current_user: CurrentUser, time_entry_id: UUID
+) -> Any:
+    time_entry = services.get(
+        session=session, time_entry_id=time_entry_id, user_id=current_user.id
+    )
+    if not time_entry:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Time entry not found"
+        )
+
+    if time_entry.end_time is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Time entry is already stopped"
+        )
+
+    return services.stop(session=session, db_time_entry=time_entry)
 
 
 @router.delete("/{time_entry_id}", status_code=204)

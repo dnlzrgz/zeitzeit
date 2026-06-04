@@ -53,12 +53,15 @@ def _create_project(
     )
 
 
+_UNSET = object()
+
+
 def _create_time_entry(
     session: Session,
     user_id: UUID,
     description: str | None = None,
     start_time: datetime | None = None,
-    end_time: datetime | None = None,
+    end_time: datetime | None = _UNSET,  # type: ignore[assignment]
     project_id: UUID | None = None,
     tag_ids: list[UUID] | None = None,
 ) -> TimeEntry:
@@ -69,7 +72,7 @@ def _create_time_entry(
         time_entry_in=TimeEntryCreate(
             description=description or _faker.sentence(),
             start_time=start,
-            end_time=end_time or start + timedelta(minutes=30),
+            end_time=start + timedelta(minutes=30) if end_time is _UNSET else end_time,
             project_id=project_id,
             tag_ids=tag_ids or [],
         ),

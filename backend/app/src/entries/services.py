@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlmodel import Session, desc, select
@@ -9,6 +10,15 @@ def get(*, session: Session, time_entry_id: UUID, user_id: UUID) -> TimeEntry | 
     return session.exec(
         select(TimeEntry).where(
             TimeEntry.id == time_entry_id, TimeEntry.user_id == user_id
+        )
+    ).first()
+
+
+def get_running(*, session: Session, user_id: UUID) -> TimeEntry | None:
+    return session.exec(
+        select(TimeEntry).where(
+            TimeEntry.user_id == user_id,
+            TimeEntry.end_time.is_(None),
         )
     ).first()
 
@@ -86,6 +96,16 @@ def update(
     session.add(db_time_entry)
     session.commit()
     session.refresh(db_time_entry)
+    return db_time_entry
+
+
+def stop(*, session: Session, db_time_entry: TimeEntry) -> TimeEntry:
+    db_time_entry.end_time = datetime.now(timezone.utc)
+
+    session.add(db_time_entry)
+    session.commit()
+    session.refresh(db_time_entry)
+
     return db_time_entry
 
 

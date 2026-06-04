@@ -7,6 +7,179 @@ from app.src.entries import services as entry_services
 from tests.utils import _create_project, _create_tag, _create_time_entry, _now
 
 
+def test_get_time_entry_by_id_requires_authentication(
+    session,
+    client,
+    regular_user,
+) -> None:
+    entry = _create_time_entry(session, regular_user.id)
+    resp = client.get(app.url_path_for("get_time_entry", time_entry_id=entry.id))
+    assert resp.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_get_time_entry_by_id_returns_entry_successfully(
+    session,
+    client,
+    regular_user,
+    regular_user_token_headers,
+) -> None:
+    entry = _create_time_entry(session, regular_user.id)
+    resp = client.get(
+        app.url_path_for("get_time_entry", time_entry_id=entry.id),
+        headers=regular_user_token_headers,
+    )
+    assert resp.status_code == status.HTTP_200_OK
+
+    body = resp.json()
+    assert body["id"] == str(entry.id)
+    assert body["description"] == entry.description
+
+
+def test_get_time_entry_by_id_not_found_returns_404(
+    client,
+    faker,
+    regular_user_token_headers,
+) -> None:
+    resp = client.get(
+        app.url_path_for("get_time_entry", time_entry_id=faker.uuid4()),
+        headers=regular_user_token_headers,
+    )
+    assert resp.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_get_time_entry_by_id_from_another_user_returns_404(
+    session,
+    client,
+    admin,
+    regular_user_token_headers,
+) -> None:
+    admin_entry = _create_time_entry(session, admin.id)
+    resp = client.get(
+        app.url_path_for("get_time_entry", time_entry_id=admin_entry.id),
+        headers=regular_user_token_headers,
+    )
+    assert resp.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_get_running_entry_requires_authentication(client) -> None:
+    resp = client.get(app.url_path_for("get_running_entry"))
+    assert resp.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_get_running_entry_returns_none_when_no_running_entry(
+    client,
+    regular_user_token_headers,
+) -> None:
+    resp = client.get(
+        app.url_path_for("get_running_entry"),
+        headers=regular_user_token_headers,
+    )
+    assert resp.status_code == status.HTTP_200_OK
+    assert resp.json() is None
+
+
+def test_get_running_entry_returns_entry_without_end_time(
+    session,
+    client,
+    regular_user,
+    regular_user_token_headers,
+) -> None:
+    running = _create_time_entry(session, regular_user.id, end_time=None)
+    resp = client.get(
+        app.url_path_for("get_running_entry"),
+        headers=regular_user_token_headers,
+    )
+    assert resp.status_code == status.HTTP_200_OK
+    assert resp.json()["id"] == str(running.id)
+    assert resp.json()["end_time"] is None
+
+
+def test_get_running_entry_returns_only_own_entry(
+    session,
+    client,
+    admin,
+    regular_user_token_headers,
+) -> None:
+    _create_time_entry(session, admin.id, end_time=None)
+    resp = client.get(
+        app.url_path_for("get_running_entry"),
+        headers=regular_user_token_headers,
+    )
+    assert resp.status_code == status.HTTP_200_OK
+    assert resp.json() is None
+
+
+def test_stop_time_entry_requires_authentication(
+    session,
+    client,
+    regular_user,
+) -> None:
+    entry = _create_time_entry(session, regular_user.id, end_time=None)
+    resp = client.post(app.url_path_for("stop_time_entry", time_entry_id=entry.id))
+    assert resp.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_stop_time_entry_successfully(
+    session,
+    client,
+    regular_user,
+    regular_user_token_headers,
+) -> None:
+    entry = _create_time_entry(session, regular_user.id, end_time=None)
+    resp = client.post(
+        app.url_path_for("stop_time_entry", time_entry_id=entry.id),
+        headers=regular_user_token_headers,
+    )
+    assert resp.status_code == status.HTTP_200_OK
+    assert resp.json()["end_time"] is not None
+
+
+def test_stop_time_entry_already_stopped_returns_409(
+    session,
+    client,
+    regular_user,
+    regular_user_token_headers,
+) -> None:
+    now = _now()
+    entry = _create_time_entry(
+        session,
+        regular_user.id,
+        start_time=now,
+        end_time=now + timedelta(hours=1),
+    )
+    resp = client.post(
+        app.url_path_for("stop_time_entry", time_entry_id=entry.id),
+        headers=regular_user_token_headers,
+    )
+    assert resp.status_code == status.HTTP_409_CONFLICT
+
+
+def test_stop_time_entry_not_found_returns_404(
+    client,
+    faker,
+    regular_user_token_headers,
+) -> None:
+    resp = client.post(
+        app.url_path_for("stop_time_entry", time_entry_id=faker.uuid4()),
+        headers=regular_user_token_headers,
+    )
+    assert resp.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_stop_time_entry_from_another_user_returns_404(
+    session,
+    client,
+    admin,
+    regular_user_token_headers,
+) -> None:
+    admin_entry = _create_time_entry(session, admin.id, end_time=None)
+    resp = client.post(
+        app.url_path_for("stop_time_entry", time_entry_id=admin_entry.id),
+        headers=regular_user_token_headers,
+    )
+    assert resp.status_code == status.HTTP_404_NOT_FOUND
+
+
 def test_create_time_entry_requires_authentication(client) -> None:
     now = _now()
     resp = client.post(
