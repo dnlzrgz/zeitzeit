@@ -14,8 +14,6 @@ from sqlmodel import (
     UniqueConstraint,
 )
 
-# TODO: add indexes
-
 
 def get_datetime_utc() -> datetime:
     return datetime.now(timezone.utc)
@@ -54,7 +52,12 @@ class UserUpdate(UserBase):
     full_name: str | None = Field(default=None, max_length=255)
 
 
-class UserUpdatePassword(SQLModel):
+class UserUpdateMe(SQLModel):
+    email: EmailStr | None = Field(default=None, max_length=255)  # type: ignore[assignment]
+    full_name: str | None = Field(default=None, max_length=255)
+
+
+class UpdatePassword(SQLModel):
     current_password: str = Field(min_length=8, max_length=128)
     new_password: str = Field(min_length=8, max_length=128)
 

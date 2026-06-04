@@ -8,9 +8,9 @@ from app import security
 from app.deps import SessionDep
 from app.models import Token
 from app.settings import settings
-from app.src.users.services import authenticate
+from app.src.users import services as user_services
 
-router = APIRouter(tags=["login"])
+router = APIRouter(tags=["auth"])
 
 
 @router.post("/login/access-token")
@@ -21,7 +21,7 @@ def login_access_token(
     """
     OAuth2 compatible token login, get an access token for future requests.
     """
-    user = authenticate(
+    user = user_services.authenticate(
         session=session,
         email=form_data.username,
         password=form_data.password,

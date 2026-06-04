@@ -79,12 +79,17 @@ def admin_token_headers(admin: User) -> dict[str, str]:
 
 
 @pytest.fixture()
-def regular_user(session: Session, faker) -> User:
+def regular_password() -> str:
+    return "Val1dP4assword"
+
+
+@pytest.fixture()
+def regular_user(session: Session, regular_password, faker) -> User:
     return user_services.create(
         session=session,
         user_create=UserCreate(
             email=faker.unique.email(),
-            password=faker.unique.password(),
+            password=regular_password,
             is_admin=False,
         ),
     )
