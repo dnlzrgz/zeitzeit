@@ -1,6 +1,6 @@
-import uuid
 from datetime import datetime, timezone
 from typing import Annotated, Any
+from uuid import UUID
 
 from pydantic import BeforeValidator, EmailStr, model_validator
 from pydantic_extra_types.color import Color
@@ -13,6 +13,7 @@ from sqlmodel import (
     SQLModel,
     UniqueConstraint,
 )
+from uuid_utils import uuid7
 
 
 def get_datetime_utc() -> datetime:
@@ -63,7 +64,7 @@ class UpdatePassword(SQLModel):
 
 
 class User(UserBase, table=True):
-    id: uuid.UUID = Field(default_factory=uuid.uuid7, primary_key=True)
+    id: UUID = Field(default_factory=uuid7, primary_key=True)
     hashed_password: str
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc,
@@ -85,7 +86,7 @@ class User(UserBase, table=True):
 
 
 class UserPublic(UserBase):
-    id: uuid.UUID
+    id: UUID
     created_at: datetime | None = None
 
 
@@ -117,24 +118,22 @@ class Project(ProjectBase, table=True):
         ),
     )
 
-    id: uuid.UUID = Field(
-        default_factory=uuid.uuid7,
+    id: UUID = Field(
+        default_factory=uuid7,
         primary_key=True,
     )
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc,
         sa_type=DateTime(timezone=True),  # type: ignore
     )
-    user_id: uuid.UUID = Field(
-        foreign_key="user.id", nullable=False, ondelete="CASCADE"
-    )
+    user_id: UUID = Field(foreign_key="user.id", nullable=False, ondelete="CASCADE")
     user: User | None = Relationship(back_populates="projects")
     time_entries: list[TimeEntry] = Relationship(back_populates="project")
 
 
 class ProjectPublic(ProjectBase):
-    id: uuid.UUID
-    user_id: uuid.UUID
+    id: UUID
+    user_id: UUID
     created_at: datetime | None = None
 
 
@@ -144,8 +143,8 @@ class ProjectsPublic(SQLModel):
 
 
 class TimeEntryTagLink(SQLModel, table=True):
-    time_entry_id: uuid.UUID = Field(foreign_key="timeentry.id", primary_key=True)
-    tag_id: uuid.UUID = Field(foreign_key="tag.id", primary_key=True)
+    time_entry_id: UUID = Field(foreign_key="timeentry.id", primary_key=True)
+    tag_id: UUID = Field(foreign_key="tag.id", primary_key=True)
 
 
 class TagBase(SQLModel):
@@ -169,10 +168,8 @@ class Tag(TagBase, table=True):
         ),
     )
 
-    id: uuid.UUID = Field(default_factory=uuid.uuid7, primary_key=True)
-    user_id: uuid.UUID = Field(
-        foreign_key="user.id", nullable=False, ondelete="CASCADE"
-    )
+    id: UUID = Field(default_factory=uuid7, primary_key=True)
+    user_id: UUID = Field(foreign_key="user.id", nullable=False, ondelete="CASCADE")
     user: User | None = Relationship(back_populates="tags")
     time_entries: list["TimeEntry"] = Relationship(
         back_populates="tags",
@@ -181,8 +178,8 @@ class Tag(TagBase, table=True):
 
 
 class TagPublic(TagBase):
-    id: uuid.UUID
-    user_id: uuid.UUID
+    id: UUID
+    user_id: UUID
 
 
 class TagsPublic(SQLModel):
@@ -204,16 +201,16 @@ class TimeEntryBase(SQLModel):
 
 
 class TimeEntryCreate(TimeEntryBase):
-    project_id: uuid.UUID | None = None
-    tag_ids: list[uuid.UUID] = Field(default_factory=list)
+    project_id: UUID | None = None
+    tag_ids: list[UUID] = Field(default_factory=list)
 
 
 class TimeEntryUpdate(SQLModel):
     description: str | None = Field(default=None, max_length=255)
     start_time: datetime | None = None
     end_time: datetime | None = None
-    project_id: uuid.UUID | None = None
-    tag_ids: list[uuid.UUID] | None = None
+    project_id: UUID | None = None
+    tag_ids: list[UUID] | None = None
 
     @model_validator(mode="after")
     def check_end_after_start(self) -> "TimeEntryUpdate":
@@ -240,14 +237,14 @@ class TimeEntry(TimeEntryBase, table=True):
         ),
     )
 
-    id: uuid.UUID = Field(default_factory=uuid.uuid7, primary_key=True)
-    user_id: uuid.UUID = Field(
+    id: UUID = Field(default_factory=uuid7, primary_key=True)
+    user_id: UUID = Field(
         foreign_key="user.id",
         nullable=False,
         ondelete="CASCADE",
     )
     user: User | None = Relationship(back_populates="time_entries")
-    project_id: uuid.UUID | None = Field(
+    project_id: UUID | None = Field(
         default=None,
         foreign_key="project.id",
         ondelete="SET NULL",
@@ -260,15 +257,15 @@ class TimeEntry(TimeEntryBase, table=True):
 
 
 class TimeEntryPublic(TimeEntryBase):
-    id: uuid.UUID
-    user_id: uuid.UUID
-    project_id: uuid.UUID | None = None
+    id: UUID
+    user_id: UUID
+    project_id: UUID | None = None
     tags: list[TagPublic] = []
 
 
 class TimeEntriesPage(SQLModel):
     data: list[TimeEntryPublic]
-    next_cursor: uuid.UUID | None = None
+    next_cursor: UUID | None = None
     has_more: bool
 
 

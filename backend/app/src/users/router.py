@@ -2,7 +2,6 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
 
-from app.src.users import services
 from app.deps import CurrentUser, SessionDep
 from app.models import (
     UpdatePassword,
@@ -12,10 +11,9 @@ from app.models import (
     UserUpdate,
     UserUpdateMe,
 )
+from app.src.users import services
 
 router = APIRouter(prefix="/users", tags=["users"])
-
-# FIX: users shouldn't be able to update admin status by themselves.
 
 
 @router.post("/signup", response_model=UserPublic)

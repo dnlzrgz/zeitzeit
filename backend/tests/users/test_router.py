@@ -45,7 +45,7 @@ def test_signup_with_short_password_returns_422(client, faker) -> None:
             "password": "short",
         },
     )
-    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 def test_get_me_requires_authentication(client) -> None:

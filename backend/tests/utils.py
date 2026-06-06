@@ -1,5 +1,5 @@
-from datetime import datetime, timedelta, timezone
 from uuid import UUID
+from datetime import datetime, timedelta, timezone
 
 from faker import Faker
 from sqlmodel import Session
@@ -12,9 +12,9 @@ from app.models import (
     TimeEntry,
     TimeEntryCreate,
 )
+from app.src.entries import services as entry_services
 from app.src.projects import services as project_services
 from app.src.tags import services as tag_services
-from app.src.entries import services as entry_services
 
 _faker = Faker()
 

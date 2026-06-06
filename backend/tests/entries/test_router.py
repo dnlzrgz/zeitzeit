@@ -549,6 +549,7 @@ def test_delete_time_entry_successfully(
     regular_user_token_headers,
 ) -> None:
     entry = _create_time_entry(session, regular_user.id)
+    entry_id = entry.id
 
     resp = client.delete(
         app.url_path_for("delete_time_entry", time_entry_id=entry.id),
@@ -557,7 +558,7 @@ def test_delete_time_entry_successfully(
     assert resp.status_code == status.HTTP_204_NO_CONTENT
 
     gone = entry_services.get(
-        session=session, time_entry_id=entry.id, user_id=regular_user.id
+        session=session, time_entry_id=entry_id, user_id=regular_user.id
     )
     assert gone is None
 
