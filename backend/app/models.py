@@ -12,6 +12,7 @@ from sqlmodel import (
     Relationship,
     SQLModel,
     UniqueConstraint,
+    text,
 )
 from uuid_utils import uuid7
 
@@ -234,6 +235,13 @@ class TimeEntry(TimeEntryBase, table=True):
         Index(
             "ix_timeentry_project_id",
             "project_id",
+        ),
+        Index(
+            "uq_running_entry_per_user",
+            "user_id",
+            unique=True,
+            postgresql_where=text("end_time IS NULL"),
+            sqlite_where=text("end_time IS NULL"),
         ),
     )
 
