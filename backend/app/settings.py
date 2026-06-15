@@ -108,6 +108,16 @@ class Settings(BaseSettings):
     SENTRY_PROFILES_SAMPLE_RATE: float = 0.1
     SENTRY_SEND_DEFAULT_PII: bool = False
 
+    LOG_LEVEL: str | None = None
+
+    @computed_field
+    @property
+    def log_level(self) -> str:
+        if self.LOG_LEVEL:
+            return self.LOG_LEVEL.upper()
+
+        return "DEBUG" if self.ENVIRONMENT == "local" else "INFO"
+
     GZIP_ENABLED: bool = True
     GZIP_MINIMUM_SIZE: int = 1000
     GZIP_COMPRESS_LEVEL: int = 5

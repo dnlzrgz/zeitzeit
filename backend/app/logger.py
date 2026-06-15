@@ -1,25 +1,45 @@
 import logging
-import sys
 
-from app.settings import settings
+import structlog
 
 
-def setup_logger() -> None:
-    log_level = logging.DEBUG if settings.ENVIRONMENT == "local" else logging.INFO
+def setup_logging(level: str = "INFO", json_logs: bool = False) -> None:
+    shared_processors = [
+        structlog.contextvars.merge_contextvars,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.add_logger_name,
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+    ]
 
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(
-        logging.Formatter(
-            fmt="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-            datefmt="%Y-%m-%dT%H:%M:%S",
-        )
+    structlog.configure(
+        processors=[
+            *shared_processors,
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+        ],
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        wrapper_class=structlog.stdlib.BoundLogger,
+        cache_logger_on_first_use=True,
     )
 
-    logger = logging.getLogger("app")
-    logger.setLevel(log_level)
+    renderer = (
+        structlog.processors.JSONRenderer()
+        if json_logs
+        else structlog.dev.ConsoleRenderer()
+    )
+    formatter = structlog.stdlib.ProcessorFormatter(
+        processors=[
+            structlog.stdlib.ProcessorFormatter.remove_processors_meta,
+            renderer,
+        ],
+        foreign_pre_chain=shared_processors,
+    )
 
-    if not logger.handlers:
-        logger.addHandler(handler)
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logging.basicConfig(level=level, handlers=[handler], force=True)
 
-    if settings.ENVIRONMENT != "local":
-        logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+    for name in ("uvicorn", "uvicorn.access", "uvicorn.error"):
+        logging.getLogger(name).handlers = []
+        logging.getLogger(name).propagate = True

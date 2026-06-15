@@ -7,8 +7,8 @@ from fastapi.routing import APIRoute
 from sentry_sdk.integrations.logging import LoggingIntegration
 from starlette.middleware.cors import CORSMiddleware
 
-from app.logger import setup_logger
-from app.middleware import LoggingMiddleware
+from app.logger import setup_logging
+from app.middleware import log_requests
 from app.settings import settings
 from app.src.auth.router import router as auth_router
 from app.src.entries.router import router as time_entries_router
@@ -16,7 +16,10 @@ from app.src.projects.router import router as projects_router
 from app.src.tags.router import router as tags_router
 from app.src.users.router import router as users_router
 
-setup_logger()
+setup_logging(
+    level=settings.log_level,
+    json_logs=settings.ENVIRONMENT != "local",
+)
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -53,8 +56,7 @@ app = FastAPI(
     generate_unique_id_function=custom_generate_unique_id,
 )
 
-app.add_middleware(LoggingMiddleware)
-
+app.middleware("http")(log_requests)
 
 if settings.all_cors_origins:
     app.add_middleware(
@@ -71,5 +73,6 @@ if settings.GZIP_ENABLED:
         minimum_size=settings.GZIP_MINIMUM_SIZE,
         compresslevel=settings.GZIP_COMPRESS_LEVEL,
     )
+
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
