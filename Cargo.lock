@@ -2668,6 +2668,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "config",
+ "dotenvy",
  "garde",
  "getrandom 0.4.3",
  "serde",

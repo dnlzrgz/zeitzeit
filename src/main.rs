@@ -1,3 +1,20 @@
-fn main() {
-    println!("Hello, world!");
+use anyhow::Result;
+use tokio::net::TcpListener;
+
+use tracing_subscriber::EnvFilter;
+use zeitzeit::{config::Config, router::build_router};
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    dotenvy::dotenv().ok();
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+        )
+        .init();
+
+    let config = Config::from_env()?;
+    let listener = TcpListener::bind(&config.bind_addr).await?;
+    axum::serve(listener, build_router()).await?;
+    Ok(())
 }
