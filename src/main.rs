@@ -1,8 +1,10 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 use tokio::net::TcpListener;
-
 use tracing_subscriber::EnvFilter;
-use zeitzeit::{config::Config, router::build_router};
+
+use zeitzeit::{config::Config, db, router::build_router, state::AppState};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -13,8 +15,14 @@ async fn main() -> Result<()> {
         )
         .init();
 
-    let config = Config::from_env()?;
+    let config = Arc::new(Config::from_env()?);
+
     let listener = TcpListener::bind(&config.bind_addr).await?;
-    axum::serve(listener, build_router()).await?;
+    let pool = db::connect(&config).await?;
+    db::migrate(&pool).await?;
+
+    let state = AppState { pool, config };
+    axum::serve(listener, build_router(state)).await?;
+
     Ok(())
 }
