@@ -94,8 +94,7 @@ impl IntoResponse for AppError {
             HeaderValue::from_static("application/problem+json"),
         );
 
-        // A pool timeout is transient, so tell well-behaved clients to back off
-        // instead of retrying immediately.
+        // Tell clients to back off instead of retrying immediately.
         if status == StatusCode::SERVICE_UNAVAILABLE {
             response
                 .headers_mut()
