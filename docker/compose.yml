@@ -16,5 +16,24 @@ services:
       retries: 10
       start_period: 5s
 
+  api:
+    profiles: ["api"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    environment:
+      BIND_ADDR: 0.0.0.0:8080
+      DATABASE_URL: ${DEV_DATABASE_URL}
+      RUST_LOG: ${RUST_LOG:-info}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    volumes:
+      - .:/src
+      - cargo-target:/src/target
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   pgdata:
+  cargo-target:

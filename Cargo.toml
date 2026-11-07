@@ -49,3 +49,11 @@ uuid = { version = "1.29.0", features = ["v7", "serde"] }
 
 [dev-dependencies]
 tower = { version = "0.5.3", features = ["util"] }
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+strip = "debuginfo"
+
+[profile.dev.package.argon2]
+opt-level = 3

@@ -1,0 +1,50 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: zeitzeit:latest
+    restart: unless-stopped
+    environment:
+      BIND_ADDR: 0.0.0.0:8080
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+      RUST_LOG: ${RUST_LOG:-info}
+      SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-720}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    stop_grace_period: 30s
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: wget -q -O /dev/null http://127.0.0.1:8080/readyz
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-zeitzeit}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  pgdata:
