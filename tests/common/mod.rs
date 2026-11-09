@@ -2,8 +2,17 @@
 
 use std::sync::Arc;
 
-use axum::Router;
+use axum::{
+    Router,
+    body::Body,
+    http::{Request, header},
+    response::Response,
+};
+use http_body_util::BodyExt;
+use serde_json::Value;
 use sqlx::PgPool;
+use tower::ServiceExt;
+
 use zeitzeit::{config::Config, router::build_router, state::AppState};
 
 pub fn test_app(pool: PgPool) -> Router {
@@ -14,4 +23,25 @@ pub fn test_app(pool: PgPool) -> Router {
     });
 
     build_router(AppState { pool, config })
+}
+
+pub async fn post_json(app: &Router, uri: &str, body: &Value) -> Response {
+    post_raw(app, uri, "application/json", body.to_string()).await
+}
+
+pub async fn post_raw(app: &Router, uri: &str, content_type: &str, body: String) -> Response {
+    app.clone()
+        .oneshot(
+            Request::post(uri)
+                .header(header::CONTENT_TYPE, content_type)
+                .body(Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap()
+}
+
+pub async fn json_body(res: Response) -> Value {
+    let bytes = res.into_body().collect().await.unwrap().to_bytes();
+    serde_json::from_slice(&bytes).unwrap()
 }
