@@ -19,41 +19,49 @@ log = "0.4.35"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 sha2 = "0.11.1"
-sqlx = { version = "0.9.0", default-features = false, features = [
+sqlx = {
+  version = "0.9.0",
+  default-features = false,
+  features = [
+    "chrono",
+    "macros",
+    "migrate",
     "postgres",
     "runtime-tokio",
     "tls-rustls",
     "uuid",
-    "chrono",
-    "macros",
-    "migrate",
-] }
+  ]
+}
 thiserror = "2.0.21"
-tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "net", "signal"] }
-tower-http = { version = "0.7.1", features = [
-    "trace",
-    "cors",
-    "compression-gzip",
-    "timeout",
-    "request-id",
-    "limit",
-    "set-header",
-    "catch-panic",
-] }
+tokio = { version = "1.54.1", features = ["macros", "net", "rt-multi-thread", "signal"] }
 tower_governor = { version = "0.8.0", default-features = false, features = ["axum"] }
+tower-http = {
+  version = "0.7.1",
+  features = [
+    "catch-panic",
+    "compression-gzip",
+    "cors",
+    "limit",
+    "request-id",
+    "set-header",
+    "timeout",
+    "trace",
+  ]
+}
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "json"] }
 utoipa = "6.0.0"
 utoipa-axum = "0.3.0"
-uuid = { version = "1.29.0", features = ["v7", "serde"] }
+uuid = { version = "1.29.0", features = ["serde", "v7"] }
 
 [dev-dependencies]
+http-body-util = "0.1.5"
 tower = { version = "0.5.3", features = ["util"] }
-
-[profile.release]
-codegen-units = 1
-lto = "thin"
-strip = "debuginfo"
 
 [profile.dev.package.argon2]
 opt-level = 3
+
+[profile.release]
+strip = "debuginfo"
+lto = "thin"
+codegen-units = 1
