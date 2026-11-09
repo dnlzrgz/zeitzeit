@@ -9,8 +9,10 @@ $$;
 -- Users
 CREATE TABLE users (
     id uuid PRIMARY KEY DEFAULT uuidv7(),
-    email text UNIQUE NOT NULL CHECK (email <> '' AND email = lower(btrim(email))),
-    display_name text NOT NULL CHECK (length(btrim(display_name)) > 0),
+    email text UNIQUE NOT NULL CHECK (
+        email <> '' AND email = lower(btrim(email)) AND length(email) <= 254
+    ),
+    display_name text NOT NULL CHECK (length(btrim(display_name)) BETWEEN 1 AND 254),
     password_hash text NOT NULL, -- argon2id PHC string
     timezone text NOT NULL DEFAULT 'UTC', -- IANA name
     week_start smallint NOT NULL DEFAULT 1 CHECK (week_start BETWEEN 0 AND 6), -- 0 = Sunday
