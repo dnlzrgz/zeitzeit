@@ -118,6 +118,12 @@ impl IntoResponse for AppError {
                 .insert(header::RETRY_AFTER, HeaderValue::from_static("2"));
         }
 
+        if status == StatusCode::UNAUTHORIZED {
+            response
+                .headers_mut()
+                .insert(header::WWW_AUTHENTICATE, HeaderValue::from_static("Bearer"));
+        }
+
         response
     }
 }

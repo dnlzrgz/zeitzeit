@@ -12,7 +12,7 @@ use tower_http::{
 };
 use tracing::Level;
 
-use crate::{auth, state::AppState};
+use crate::{auth, state::AppState, users};
 
 pub fn build_router(state: AppState) -> Router {
     let trace = TraceLayer::new_for_http()
@@ -37,6 +37,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/healthz", get(healthz))
         .route("/readyz", get(readyz))
         .nest("/api/v1/auth", auth::routes())
+        .nest("/api/v1/users", users::routes())
         .layer(CatchPanicLayer::new())
         .layer(trace)
         .layer(PropagateRequestIdLayer::x_request_id())
