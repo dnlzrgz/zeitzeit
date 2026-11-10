@@ -6,8 +6,9 @@ use axum::{
     routing::get,
 };
 use tower_http::{
+    catch_panic::CatchPanicLayer,
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
-    trace::{DefaultOnFailure, DefaultOnResponse, TraceLayer},
+    trace::{DefaultOnResponse, TraceLayer},
 };
 use tracing::Level;
 
@@ -30,12 +31,13 @@ pub fn build_router(state: AppState) -> Router {
             )
         })
         .on_response(DefaultOnResponse::new().level(Level::INFO))
-        .on_failure(DefaultOnFailure::new().level(Level::ERROR));
+        .on_failure(());
 
     Router::new()
         .route("/healthz", get(healthz))
         .route("/readyz", get(readyz))
         .nest("/api/v1/auth", auth::routes())
+        .layer(CatchPanicLayer::new())
         .layer(trace)
         .layer(PropagateRequestIdLayer::x_request_id())
         .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
