@@ -1,11 +1,19 @@
+mod handlers;
 pub mod repo;
 pub mod week_start;
 
+use axum::{Router, routing::get};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use uuid::Uuid;
 
+use crate::state::AppState;
+
 pub use week_start::WeekStart;
+
+pub fn routes() -> Router<AppState> {
+    Router::new().route("/me", get(handlers::me))
+}
 
 #[derive(sqlx::FromRow)]
 pub struct User {
@@ -41,4 +49,8 @@ impl From<User> for UserResponse {
             created_at: u.created_at,
         }
     }
+}
+
+pub fn normalize_email(raw: &str) -> String {
+    raw.trim().to_lowercase()
 }

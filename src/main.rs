@@ -4,7 +4,7 @@ use anyhow::Result;
 use tokio::{net::TcpListener, signal};
 use tracing_subscriber::EnvFilter;
 
-use zeitzeit::{config::Config, db, router::build_router, state::AppState};
+use zeitzeit::{auth, config::Config, db, router::build_router, state::AppState};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -20,6 +20,8 @@ async fn main() -> Result<()> {
     let listener = TcpListener::bind(&config.bind_addr).await?;
     let pool = db::connect(&config).await?;
     db::migrate(&pool).await?;
+
+    auth::password::warm_up();
 
     let state = AppState {
         pool: pool.clone(),
