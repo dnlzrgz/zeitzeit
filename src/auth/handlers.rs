@@ -7,6 +7,7 @@ use serde::Deserialize;
 
 use crate::{
     error::AppError,
+    extract::AppJson,
     state::AppState,
     users::{UserResponse, repo},
 };
@@ -46,7 +47,7 @@ impl RegisterRequest {
 
 pub async fn register(
     State(state): State<AppState>,
-    Json(mut req): Json<RegisterRequest>,
+    AppJson(mut req): AppJson<RegisterRequest>,
 ) -> Result<(StatusCode, Json<UserResponse>), AppError> {
     req.normalize();
     req.validate()

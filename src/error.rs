@@ -1,5 +1,6 @@
 use axum::{
     Json,
+    extract::rejection::JsonRejection,
     http::{HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
 };
@@ -16,6 +17,8 @@ pub enum AppError {
     Conflict(String),
     #[error("authentication required")]
     Unauthorized,
+    #[error(transparent)]
+    Json(#[from] JsonRejection),
     #[error(transparent)]
     Database(#[from] sqlx::Error),
     #[error(transparent)]
@@ -39,6 +42,20 @@ impl AppError {
             AppError::Validation(_) => (StatusCode::UNPROCESSABLE_ENTITY, self.to_string()),
             AppError::Conflict(_) => (StatusCode::CONFLICT, self.to_string()),
             AppError::Unauthorized => (StatusCode::UNAUTHORIZED, self.to_string()),
+            AppError::Json(rejection) => {
+                let status = rejection.status();
+                let detail = match status {
+                    StatusCode::UNPROCESSABLE_ENTITY => rejection.body_text(),
+                    StatusCode::BAD_REQUEST => "malformed JSON".to_owned(),
+                    StatusCode::UNSUPPORTED_MEDIA_TYPE => {
+                        "expected Content-Type: application/json".to_owned()
+                    }
+                    StatusCode::PAYLOAD_TOO_LARGE => "request body too large".to_owned(),
+                    _ => "invalid request body".to_owned(),
+                };
+
+                (status, detail)
+            }
             AppError::Database(err) => db_status_and_detail(err),
             AppError::Internal(_) => (
                 StatusCode::INTERNAL_SERVER_ERROR,

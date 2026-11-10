@@ -1,6 +1,9 @@
 mod common;
 
-use axum::http::{StatusCode, header};
+use axum::{
+    http::{StatusCode, header},
+    response::Response,
+};
 use serde_json::{Value, json};
 use sqlx::PgPool;
 
@@ -21,6 +24,26 @@ async fn user_count(pool: &PgPool) -> i64 {
         .fetch_one(pool)
         .await
         .unwrap()
+}
+
+/// Asserts the response is an RFC 9457 problem document with a non-empty detail.
+async fn assert_problem(res: Response, expected: StatusCode, context: &str) -> Value {
+    assert_eq!(res.status(), expected, "{context}: wrong status");
+    assert_eq!(
+        res.headers()[header::CONTENT_TYPE],
+        "application/problem+json",
+        "{context}: wrong content type"
+    );
+
+    let body = json_body(res).await;
+    assert!(
+        body["detail"]
+            .as_str()
+            .is_some_and(|detail| !detail.is_empty()),
+        "{context}: missing detail in {body}"
+    );
+
+    body
 }
 
 #[sqlx::test]
@@ -153,11 +176,7 @@ async fn invalid_payloads_are_rejected_and_nothing_is_stored(pool: PgPool) {
 
     for (name, body) in cases {
         let res = post_json(&app, REGISTER, &body).await;
-        assert_eq!(
-            res.status(),
-            StatusCode::UNPROCESSABLE_ENTITY,
-            "case `{name}` should be rejected with 422"
-        );
+        assert_problem(res, StatusCode::UNPROCESSABLE_ENTITY, name).await;
     }
 
     assert_eq!(user_count(&pool).await, 0);
@@ -184,7 +203,7 @@ async fn malformed_json_is_client_error(pool: PgPool) {
     let app = test_app(pool.clone());
     let res = post_raw(&app, REGISTER, "application/json", "{ not json".to_owned()).await;
 
-    assert!(res.status().is_client_error(), "got {}", res.status());
+    assert_problem(res, StatusCode::BAD_REQUEST, "malformed json").await;
     assert_eq!(user_count(&pool).await, 0);
 }
 
@@ -193,7 +212,12 @@ async fn wrong_content_type_is_rejected(pool: PgPool) {
     let app = test_app(pool);
     let res = post_raw(&app, REGISTER, "text/plain", valid_body().to_string()).await;
 
-    assert_eq!(res.status(), StatusCode::UNSUPPORTED_MEDIA_TYPE);
+    assert_problem(
+        res,
+        StatusCode::UNSUPPORTED_MEDIA_TYPE,
+        "wrong content type",
+    )
+    .await;
 }
 
 #[sqlx::test]
@@ -207,6 +231,6 @@ async fn oversized_payload_is_rejected_before_parsing(pool: PgPool) {
 
     let res = post_json(&app, REGISTER, &body).await;
 
-    assert_eq!(res.status(), StatusCode::PAYLOAD_TOO_LARGE);
+    assert_problem(res, StatusCode::PAYLOAD_TOO_LARGE, "oversized payload").await;
     assert_eq!(user_count(&pool).await, 0);
 }
