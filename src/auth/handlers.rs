@@ -44,7 +44,7 @@ fn valid_timezone(value: &str, _: &()) -> garde::Result {
 
 impl RegisterRequest {
     fn normalize(&mut self) {
-        self.email = self.email.trim().to_lowercase();
+        self.email = normalize_email(&self.email);
         self.display_name = self.display_name.trim().to_owned();
     }
 }

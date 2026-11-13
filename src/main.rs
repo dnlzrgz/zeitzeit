@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{net::SocketAddr, sync::Arc};
 
 use anyhow::Result;
 use tokio::{net::TcpListener, signal};
@@ -27,9 +27,12 @@ async fn main() -> Result<()> {
         pool: pool.clone(),
         config,
     };
-    axum::serve(listener, build_router(state))
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    axum::serve(
+        listener,
+        build_router(state).into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
 
     pool.close().await;
 

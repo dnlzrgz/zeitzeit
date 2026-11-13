@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use axum::{
     Router,
     body::Body,
@@ -8,6 +10,7 @@ use axum::{
 use tower_http::{
     catch_panic::CatchPanicLayer,
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
+    timeout::TimeoutLayer,
     trace::{DefaultOnResponse, TraceLayer},
 };
 use tracing::Level;
@@ -38,6 +41,10 @@ pub fn build_router(state: AppState) -> Router {
         .route("/readyz", get(readyz))
         .nest("/api/v1/auth", auth::routes())
         .nest("/api/v1/users", users::routes())
+        .layer(TimeoutLayer::with_status_code(
+            StatusCode::REQUEST_TIMEOUT,
+            Duration::from_secs(15), // TODO: review later
+        ))
         .layer(CatchPanicLayer::new())
         .layer(trace)
         .layer(PropagateRequestIdLayer::x_request_id())

@@ -17,6 +17,8 @@ pub enum AppError {
     Conflict(String),
     #[error("authentication required")]
     Unauthorized,
+    #[error("too many requests")]
+    TooManyRequests,
     #[error(transparent)]
     Json(#[from] JsonRejection),
     #[error(transparent)]
@@ -42,6 +44,7 @@ impl AppError {
             AppError::Validation(_) => (StatusCode::UNPROCESSABLE_ENTITY, self.to_string()),
             AppError::Conflict(_) => (StatusCode::CONFLICT, self.to_string()),
             AppError::Unauthorized => (StatusCode::UNAUTHORIZED, self.to_string()),
+            AppError::TooManyRequests => (StatusCode::TOO_MANY_REQUESTS, self.to_string()),
             AppError::Json(rejection) => {
                 let status = rejection.status();
                 let detail = match status {
