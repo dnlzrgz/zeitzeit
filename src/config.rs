@@ -1,32 +1,76 @@
-use anyhow::{Result, anyhow};
+use std::net::SocketAddr;
+
+use anyhow::{Result, anyhow, ensure};
 use config::ConfigError;
 use serde::Deserialize;
+
+#[derive(Clone, Deserialize)]
+pub struct RateLimit {
+    pub interval_secs: u64,
+    pub burst_size: u32,
+}
+
+impl RateLimit {
+    const fn new(interval_secs: u64, burst_size: u32) -> Self {
+        Self {
+            interval_secs,
+            burst_size,
+        }
+    }
+
+    fn validate(&self, name: &str) -> Result<()> {
+        ensure!(self.interval_secs > 0, "{name}: interval_secs must be > 0");
+        ensure!(self.burst_size > 0, "{name}: burst_size must be > 0");
+        Ok(())
+    }
+}
+
+fn default_login() -> RateLimit {
+    RateLimit::new(10, 5)
+}
+
+fn default_register() -> RateLimit {
+    RateLimit::new(60, 3)
+}
 
 #[derive(Clone, Deserialize)]
 pub struct Config {
     pub database_url: String,
     #[serde(default = "default_bind_addr")]
-    pub bind_addr: String,
+    pub bind_addr: SocketAddr,
     #[serde(default = "default_session_ttl_hours")]
     pub session_ttl_hours: u64,
+    #[serde(default = "default_request_timeout_secs")]
+    pub request_timeout_secs: u64,
+    #[serde(default = "default_login")]
+    pub login: RateLimit,
+    #[serde(default = "default_register")]
+    pub register: RateLimit,
 }
 
-fn default_bind_addr() -> String {
-    "127.0.0.1:8080".to_owned()
+fn default_bind_addr() -> SocketAddr {
+    ([127, 0, 0, 1], 8080).into()
 }
 
 fn default_session_ttl_hours() -> u64 {
     720
 }
 
+fn default_request_timeout_secs() -> u64 {
+    15
+}
+
 impl Config {
     pub fn from_env() -> Result<Self> {
-        let parsed = config::Config::builder()
-            .add_source(config::Environment::default())
+        let cfg = config::Config::builder()
+            .add_source(config::Environment::default().separator("__"))
             .build()
-            .and_then(|config| config.try_deserialize::<Self>());
+            .and_then(|config| config.try_deserialize::<Self>())
+            .map_err(|err| anyhow!("invalid configuration: {}", safe_reason(&err)))?;
 
-        parsed.map_err(|err| anyhow!("invalid configuration: {}", safe_reason(&err)))
+        cfg.login.validate("login")?;
+        cfg.register.validate("register")?;
+        Ok(cfg)
     }
 }
 

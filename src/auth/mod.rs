@@ -11,7 +11,7 @@ use axum::{
 use tower_governor::{GovernorError, GovernorLayer, governor::GovernorConfigBuilder};
 use tower_http::set_header::SetResponseHeaderLayer;
 
-use crate::{error::AppError, state::AppState};
+use crate::{config::Config, error::AppError, state::AppState};
 
 pub mod extractor;
 mod handlers;
@@ -19,16 +19,16 @@ pub mod password;
 mod repo;
 pub mod tokens;
 
-pub fn routes() -> Router<AppState> {
+pub fn routes(config: &Config) -> Router<AppState> {
     let login_limit = GovernorConfigBuilder::default()
-        .const_per_second(1) // TODO: review later
-        .const_burst_size(5) // TODO: review later
+        .const_per_second(config.login.interval_secs)
+        .const_burst_size(config.login.burst_size)
         .finish()
         .expect("login rate limit config is valid");
 
     let register_limit = GovernorConfigBuilder::default()
-        .const_per_second(1) // TODO: review later
-        .const_burst_size(10) // TODO: review later
+        .const_per_second(config.register.interval_secs)
+        .const_burst_size(config.register.burst_size)
         .finish()
         .expect("register rate limit config is valid");
 

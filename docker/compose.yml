@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:18
+    image: postgres:18.7-alpine3.24
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -23,8 +23,13 @@ services:
       dockerfile: docker/Dockerfile.dev
     environment:
       BIND_ADDR: 0.0.0.0:8080
-      DATABASE_URL: ${DEV_DATABASE_URL}
+      DATABASE_URL: ${DATABASE_URL}
       RUST_LOG: ${RUST_LOG:-info}
+      REQUEST_TIMEOUT_SECS: ${REQUEST_TIMEOUT_SECS:-15}
+      LOGIN__INTERVAL_SECS: ${LOGIN__INTERVAL_SECS:-10}
+      LOGIN__BURST_SIZE: ${LOGIN__BURST_SIZE:-5}
+      REGISTER__INTERVAL_SECS: ${REGISTER__INTERVAL_SECS:-60}
+      REGISTER__BURST_SIZE: ${REGISTER__BURST_SIZE:-3}
     ports:
       - "${API_PORT:-8080}:8080"
     volumes:

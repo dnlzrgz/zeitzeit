@@ -1,21 +1,16 @@
 mod common;
 
-use axum::{
-    http::{StatusCode, header},
-    response::Response,
-};
+use axum::http::{StatusCode, header};
 use serde_json::{Value, json};
 use sqlx::PgPool;
 
-use common::{json_body, post_json, post_raw, test_app};
-
-const REGISTER: &str = "/api/v1/auth/register";
+use common::{PASSWORD, REGISTER, assert_problem, json_body, test_app};
 
 fn valid_body() -> Value {
     json!({
         "email": "ada@example.com",
         "display_name": "Ada",
-        "password": "correct horse battery"
+        "password": PASSWORD
     })
 }
 
@@ -26,39 +21,18 @@ async fn user_count(pool: &PgPool) -> i64 {
         .unwrap()
 }
 
-/// Asserts the response is an RFC 9457 problem document with a non-empty detail.
-async fn assert_problem(res: Response, expected: StatusCode, context: &str) -> Value {
-    assert_eq!(res.status(), expected, "{context}: wrong status");
-    assert_eq!(
-        res.headers()[header::CONTENT_TYPE],
-        "application/problem+json",
-        "{context}: wrong content type"
-    );
-
-    let body = json_body(res).await;
-    assert!(
-        body["detail"]
-            .as_str()
-            .is_some_and(|detail| !detail.is_empty()),
-        "{context}: missing detail in {body}"
-    );
-
-    body
-}
-
 #[sqlx::test]
 async fn register_creates_user_and_hides_secrets(pool: PgPool) {
     let app = test_app(pool.clone());
-    let res = post_json(
-        &app,
-        REGISTER,
-        &json!({
+    let res = app
+        .post(REGISTER)
+        .json(&json!({
             "email": "  Ada@Example.COM ",
             "display_name": "  Ada Lovelace  ",
-            "password": "correct horse battery"
-        }),
-    )
-    .await;
+            "password": PASSWORD
+        }))
+        .send()
+        .await;
 
     assert_eq!(res.status(), StatusCode::CREATED);
     let body = json_body(res).await;
@@ -84,7 +58,7 @@ async fn register_creates_user_and_hides_secrets(pool: PgPool) {
         stored.starts_with("$argon2id$"),
         "unexpected hash: {stored}"
     );
-    assert!(!stored.contains("correct horse battery"));
+    assert!(!stored.contains(PASSWORD));
 }
 
 #[sqlx::test]
@@ -93,7 +67,7 @@ async fn register_accepts_custom_timezone(pool: PgPool) {
     let mut body = valid_body();
     body["timezone"] = json!("Europe/Madrid");
 
-    let res = post_json(&app, REGISTER, &body).await;
+    let res = app.post(REGISTER).json(&body).send().await;
 
     assert_eq!(res.status(), StatusCode::CREATED);
     assert_eq!(json_body(res).await["timezone"], "Europe/Madrid");
@@ -102,12 +76,12 @@ async fn register_accepts_custom_timezone(pool: PgPool) {
 #[sqlx::test]
 async fn duplicate_email_is_a_conflict_even_with_different_case(pool: PgPool) {
     let app = test_app(pool.clone());
-    let first = post_json(&app, REGISTER, &valid_body()).await;
+    let first = app.post(REGISTER).json(&valid_body()).send().await;
     assert_eq!(first.status(), StatusCode::CREATED);
 
     let mut second_body = valid_body();
     second_body["email"] = json!(" ADA@example.com ");
-    let second = post_json(&app, REGISTER, &second_body).await;
+    let second = app.post(REGISTER).json(&second_body).send().await;
     assert_eq!(second.status(), StatusCode::CONFLICT);
     assert_eq!(
         second.headers()[header::CONTENT_TYPE],
@@ -126,23 +100,23 @@ async fn invalid_payloads_are_rejected_and_nothing_is_stored(pool: PgPool) {
     let cases: Vec<(&str, Value)> = vec![
         (
             "invalid email",
-            json!({ "email": "not-an-email", "display_name": "Ada", "password": "correct horse battery" }),
+            json!({ "email": "not-an-email", "display_name": "Ada", "password": PASSWORD }),
         ),
         (
             "empty email",
-            json!({ "email": "", "display_name": "Ada", "password": "correct horse battery" }),
+            json!({ "email": "", "display_name": "Ada", "password": PASSWORD }),
         ),
         (
             "empty display name",
-            json!({ "email": "a@example.com", "display_name": "", "password": "correct horse battery" }),
+            json!({ "email": "a@example.com", "display_name": "", "password": PASSWORD }),
         ),
         (
             "blank display name",
-            json!({ "email": "a@example.com", "display_name": "    ", "password": "correct horse battery" }),
+            json!({ "email": "a@example.com", "display_name": "    ", "password": PASSWORD }),
         ),
         (
             "display name too long",
-            json!({ "email": "a@example.com", "display_name": "a".repeat(255), "password": "correct horse battery" }),
+            json!({ "email": "a@example.com", "display_name": "a".repeat(255), "password": PASSWORD }),
         ),
         (
             "password too short",
@@ -154,11 +128,11 @@ async fn invalid_payloads_are_rejected_and_nothing_is_stored(pool: PgPool) {
         ),
         (
             "unknown timezone",
-            json!({ "email": "a@example.com", "display_name": "Ada", "password": "correct horse battery", "timezone": "Mars/Olympus_Mons" }),
+            json!({ "email": "a@example.com", "display_name": "Ada", "password": PASSWORD, "timezone": "Mars/Olympus_Mons" }),
         ),
         (
             "missing email",
-            json!({ "display_name": "Ada", "password": "correct horse battery" }),
+            json!({ "display_name": "Ada", "password": PASSWORD }),
         ),
         (
             "missing password",
@@ -166,16 +140,16 @@ async fn invalid_payloads_are_rejected_and_nothing_is_stored(pool: PgPool) {
         ),
         (
             "wrong type",
-            json!({ "email": 42, "display_name": "Ada", "password": "correct horse battery" }),
+            json!({ "email": 42, "display_name": "Ada", "password": PASSWORD }),
         ),
         (
             "unknown field (typo)",
-            json!({ "email": "a@example.com", "display_name": "Ada", "password": "correct horse battery", "timzone": "Europe/Madrid" }),
+            json!({ "email": "a@example.com", "display_name": "Ada", "password": PASSWORD, "timzone": "Europe/Madrid" }),
         ),
     ];
 
     for (name, body) in cases {
-        let res = post_json(&app, REGISTER, &body).await;
+        let res = app.post(REGISTER).json(&body).send().await;
         assert_problem(res, StatusCode::UNPROCESSABLE_ENTITY, name).await;
     }
 
@@ -193,7 +167,7 @@ async fn password_with_max_length_is_accepted(pool: PgPool) {
             "password": "p".repeat(len)
         });
 
-        let res = post_json(&app, REGISTER, &body).await;
+        let res = app.post(REGISTER).json(&body).send().await;
         assert_eq!(res.status(), StatusCode::CREATED, "length {len}");
     }
 }
@@ -201,7 +175,11 @@ async fn password_with_max_length_is_accepted(pool: PgPool) {
 #[sqlx::test]
 async fn malformed_json_is_client_error(pool: PgPool) {
     let app = test_app(pool.clone());
-    let res = post_raw(&app, REGISTER, "application/json", "{ not json".to_owned()).await;
+    let res = app
+        .post(REGISTER)
+        .raw("application/json", "{ not json".to_owned())
+        .send()
+        .await;
 
     assert_problem(res, StatusCode::BAD_REQUEST, "malformed json").await;
     assert_eq!(user_count(&pool).await, 0);
@@ -210,7 +188,11 @@ async fn malformed_json_is_client_error(pool: PgPool) {
 #[sqlx::test]
 async fn wrong_content_type_is_rejected(pool: PgPool) {
     let app = test_app(pool);
-    let res = post_raw(&app, REGISTER, "text/plain", valid_body().to_string()).await;
+    let res = app
+        .post(REGISTER)
+        .raw("text/plain", valid_body().to_string())
+        .send()
+        .await;
 
     assert_problem(
         res,
@@ -226,10 +208,10 @@ async fn oversized_payload_is_rejected_before_parsing(pool: PgPool) {
     let body = json!({
         "email": "ada@example.com",
         "display_name": "a".repeat(1024 * 1024),
-        "password": "correct horse battery"
+        "password": PASSWORD
     });
 
-    let res = post_json(&app, REGISTER, &body).await;
+    let res = app.post(REGISTER).json(&body).send().await;
 
     assert_problem(res, StatusCode::PAYLOAD_TOO_LARGE, "oversized payload").await;
     assert_eq!(user_count(&pool).await, 0);

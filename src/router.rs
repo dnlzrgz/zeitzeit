@@ -39,11 +39,11 @@ pub fn build_router(state: AppState) -> Router {
     Router::new()
         .route("/healthz", get(healthz))
         .route("/readyz", get(readyz))
-        .nest("/api/v1/auth", auth::routes())
+        .nest("/api/v1/auth", auth::routes(&state.config))
         .nest("/api/v1/users", users::routes())
         .layer(TimeoutLayer::with_status_code(
             StatusCode::REQUEST_TIMEOUT,
-            Duration::from_secs(15), // TODO: review later
+            Duration::from_secs(state.config.request_timeout_secs),
         ))
         .layer(CatchPanicLayer::new())
         .layer(trace)
