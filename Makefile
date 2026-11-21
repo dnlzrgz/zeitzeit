@@ -27,6 +27,9 @@ migrate-new: ## Create a migration: make migrate-new name=add_users
 fmt:
 	cargo fmt --all
 
+fmt-check: ## Check formatting
+	cargo fmt --all --check
+
 lint: ## Clippy warnings as errors
 	cargo clippy --all-targets --locked -- -D warnings
 
