@@ -3,7 +3,7 @@ use std::time::Duration;
 use axum::{
     Router,
     body::Body,
-    extract::State,
+    extract::{DefaultBodyLimit, State},
     http::{Request, StatusCode},
     routing::get,
 };
@@ -41,6 +41,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/readyz", get(readyz))
         .nest("/api/v1/auth", auth::routes(&state.config))
         .nest("/api/v1/users", users::routes())
+        .layer(DefaultBodyLimit::max(state.config.max_body_bytes))
         .layer(TimeoutLayer::with_status_code(
             StatusCode::REQUEST_TIMEOUT,
             Duration::from_secs(state.config.request_timeout_secs),

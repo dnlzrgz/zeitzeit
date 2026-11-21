@@ -34,11 +34,12 @@ pub const LOGOUT: &str = "/api/v1/auth/logout";
 pub const PASSWORD: &str = "correct horse battery";
 
 pub fn test_app(pool: PgPool) -> TestClient {
-    let config = Arc::new(Config {
+    let config = Config {
         database_url: String::new(),
         bind_addr: SocketAddr::from(([127, 0, 0, 1], 0)),
         session_ttl_hours: 1,
         request_timeout_secs: 15,
+        max_body_bytes: 64 * 1024,
         login: RateLimit {
             interval_secs: 5,
             burst_size: 5,
@@ -47,10 +48,13 @@ pub fn test_app(pool: PgPool) -> TestClient {
             interval_secs: 5,
             burst_size: 5,
         },
-    });
+    };
 
     TestClient {
-        app: build_router(AppState { pool, config }),
+        app: build_router(AppState {
+            pool,
+            config: Arc::new(config),
+        }),
     }
 }
 

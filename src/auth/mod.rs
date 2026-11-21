@@ -3,7 +3,6 @@ use std::time::Duration;
 use anyhow::anyhow;
 use axum::{
     Router,
-    extract::DefaultBodyLimit,
     http::{HeaderValue, header},
     response::{IntoResponse, Response},
     routing::post,
@@ -55,7 +54,6 @@ pub fn routes(config: &Config) -> Router<AppState> {
                 .route_layer(GovernorLayer::new(login_limit).error_handler(rate_limited)),
         )
         .route("/logout", post(handlers::logout))
-        .layer(DefaultBodyLimit::max(64 * 1024)) // Cap body size
         .layer(SetResponseHeaderLayer::overriding(
             header::CACHE_CONTROL,
             HeaderValue::from_static("no-store"),

@@ -42,6 +42,8 @@ pub struct Config {
     pub session_ttl_hours: u64,
     #[serde(default = "default_request_timeout_secs")]
     pub request_timeout_secs: u64,
+    #[serde(default = "default_max_body_bytes")]
+    pub max_body_bytes: usize,
     #[serde(default = "default_login")]
     pub login: RateLimit,
     #[serde(default = "default_register")]
@@ -60,6 +62,10 @@ fn default_request_timeout_secs() -> u64 {
     15
 }
 
+const fn default_max_body_bytes() -> usize {
+    64 * 1024
+}
+
 impl Config {
     pub fn from_env() -> Result<Self> {
         let cfg = config::Config::builder()
@@ -68,6 +74,7 @@ impl Config {
             .and_then(|config| config.try_deserialize::<Self>())
             .map_err(|err| anyhow!("invalid configuration: {}", safe_reason(&err)))?;
 
+        ensure!(cfg.max_body_bytes > 0, "max_body_bytes must be > 0");
         cfg.login.validate("login")?;
         cfg.register.validate("register")?;
         Ok(cfg)
