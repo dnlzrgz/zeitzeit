@@ -1,0 +1,20 @@
+services:
+  db:
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+  api:
+    profiles: ["api"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    ports:
+      - "${API_PORT:-8080}:8080"
+    volumes:
+      - .:/src
+      - cargo-target:/src/target
+      - cargo-registry:/usr/local/cargo/registry
+
+volumes:
+  cargo-target:
+  cargo-registry:

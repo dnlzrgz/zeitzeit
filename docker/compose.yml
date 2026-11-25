@@ -1,12 +1,11 @@
+# Shared by dev and prod.
 services:
   db:
     image: postgres:18.7-alpine3.24
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    ports:
-      - "${POSTGRES_PORT}:5432"
+      POSTGRES_DB: ${POSTGRES_DB:-zeitzeit}
+      POSTGRES_USER: ${POSTGRES_USER:-zeitzeit}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql
     healthcheck:
@@ -17,29 +16,20 @@ services:
       start_period: 5s
 
   api:
-    profiles: ["api"]
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.dev
     environment:
       BIND_ADDR: 0.0.0.0:8080
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
       RUST_LOG: ${RUST_LOG:-info}
+      SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-720}
       REQUEST_TIMEOUT_SECS: ${REQUEST_TIMEOUT_SECS:-15}
       MAX_BODY_BYTES: ${MAX_BODY_BYTES:-65536}
       LOGIN__INTERVAL_SECS: ${LOGIN__INTERVAL_SECS:-10}
       LOGIN__BURST_SIZE: ${LOGIN__BURST_SIZE:-5}
       REGISTER__INTERVAL_SECS: ${REGISTER__INTERVAL_SECS:-60}
       REGISTER__BURST_SIZE: ${REGISTER__BURST_SIZE:-3}
-    ports:
-      - "${API_PORT:-8080}:8080"
-    volumes:
-      - .:/src
-      - cargo-target:/src/target
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   pgdata:
-  cargo-target:
